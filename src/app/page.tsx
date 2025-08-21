@@ -3,6 +3,7 @@ import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+// @ts-expect-error - dom-to-image-more doesn't have TypeScript definitions
 import domtoimage from "dom-to-image-more";
 
 type Flower = {
@@ -51,11 +52,12 @@ export default function Home() {
   if (!bouquetRef.current) return;
 
   const nodesWithOutline = bouquetRef.current.querySelectorAll("[style], .outline-dashed, .border");
-  nodesWithOutline.forEach((node: any) => {
-    node.dataset._outline = node.style.outline || "";
-    node.style.outline = "none";
-    node.dataset._border = node.style.border || "";
-    node.style.border = "none";
+  nodesWithOutline.forEach((node: Element) => {
+    const htmlElement = node as HTMLElement;
+    htmlElement.dataset._outline = htmlElement.style.outline || "";
+    htmlElement.style.outline = "none";
+    htmlElement.dataset._border = htmlElement.style.border || "";
+    htmlElement.style.border = "none";
   });
 
   try {
@@ -69,9 +71,10 @@ export default function Home() {
     link.href = dataUrl;
     link.click();
   } finally {
-    nodesWithOutline.forEach((node: any) => {
-      node.style.outline = node.dataset._outline;
-      node.style.border = node.dataset._border;
+    nodesWithOutline.forEach((node: Element) => {
+      const htmlElement = node as HTMLElement;
+      htmlElement.style.outline = htmlElement.dataset._outline || "";
+      htmlElement.style.border = htmlElement.dataset._border || "";
     });
   }
 };
@@ -119,11 +122,13 @@ export default function Home() {
 
             {/* Placed flowers */}
             {bouquetFlowers.map((flower) => (
-              <img
+              <Image
                 key={flower.id}
                 src={flower.src}
                 alt="flower"
-                className="absolute w-24 h-24 pointer-events-none"
+                width={96}
+                height={96}
+                className="absolute pointer-events-none"
                 style={{ left: flower.x, top: flower.y }}
               />
             ))}
