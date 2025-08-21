@@ -1,103 +1,166 @@
+"use client";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import domtoimage from "dom-to-image-more";
+
+type Flower = {
+  id: number;
+  src: string;
+  x: number;
+  y: number;
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [hueValue, setHueValue] = useState([0]);
+  const [bouquetFlowers, setBouquetFlowers] = useState<Flower[]>([]);
+  const bouquetRef = useRef<HTMLDivElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const flowers = [
+    "/flowers/Frame1.png",
+    "/flowers/Frame2.png",
+    "/flowers/Frame4.png",
+    "/flowers/Frame6.png",
+    "/flowers/Frame7.png",
+    "/flowers/Frame8.png",
+  ];
+
+  const handleDragStart = (e: React.DragEvent, src: string) => {
+    e.dataTransfer.setData("flowerSrc", src);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const rect = (bouquetRef.current as HTMLDivElement).getBoundingClientRect();
+    const src = e.dataTransfer.getData("flowerSrc");
+    const x = e.clientX - rect.left - 50;
+    const y = e.clientY - rect.top - 50;
+
+    setBouquetFlowers((prev) => [
+      ...prev,
+      { id: Date.now(), src, x, y },
+    ]);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDownload = async () => {
+  if (!bouquetRef.current) return;
+
+  const nodesWithOutline = bouquetRef.current.querySelectorAll("[style], .outline-dashed, .border");
+  nodesWithOutline.forEach((node: any) => {
+    node.dataset._outline = node.style.outline || "";
+    node.style.outline = "none";
+    node.dataset._border = node.style.border || "";
+    node.style.border = "none";
+  });
+
+  try {
+    const dataUrl = await domtoimage.toPng(bouquetRef.current, {
+      quality: 1,
+      bgcolor: "transparent",
+      cacheBust: true,
+    });
+    const link = document.createElement("a");
+    link.download = "my-bouquet.png";
+    link.href = dataUrl;
+    link.click();
+  } finally {
+    nodesWithOutline.forEach((node: any) => {
+      node.style.outline = node.dataset._outline;
+      node.style.border = node.dataset._border;
+    });
+  }
+};
+
+
+  return (
+    <>
+      <div
+        className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center gap-20"
+        style={{ backgroundImage: "url('/bg.png')" }}
+      >
+        {/* LEFT FLOWER PANEL */}
+        <div className="flex md:flex-col gap-10">
+          {flowers.slice(0, 3).map((src, i) => (
+            <div
+              key={i}
+              draggable
+              onDragStart={(e) => handleDragStart(e, src)}
+              className="bg-white/30 backdrop-blur-sm rounded-full border border-purple-950 cursor-grab"
+            >
+              <Image src={src} width={188} height={188} alt={`f${i}`} />
+            </div>
+          ))}
+        </div>
+
+        {/* BOUQUET AREA */}
+        <div>
+          <div
+            ref={bouquetRef}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            className="relative bg-purple-100/10 backdrop-blur-[4px] flex items-center justify-center rounded-xl outline-2 outline-purple-950 outline-dashed shadow-2xl mt-16"
           >
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src="/bouquet-purple.png"
+              alt="hi"
+              width={650}
+              height={800}
+              draggable="false"
+              style={{
+                filter: `hue-rotate(${hueValue[0] * 3.6}deg)`,
+                transition: "filter 0.2s ease",
+              }}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+            {/* Placed flowers */}
+            {bouquetFlowers.map((flower) => (
+              <img
+                key={flower.id}
+                src={flower.src}
+                alt="flower"
+                className="absolute w-24 h-24 pointer-events-none"
+                style={{ left: flower.x, top: flower.y }}
+              />
+            ))}
+          </div>
+
+          <h1 className="my-2 text-center text-white text-xl font-[family-name:var(--font-pixelify-sans)] backdrop-blur-xl rounded-lg">
+            Change Color
+          </h1>
+          <Slider
+            value={hueValue}
+            onValueChange={setHueValue}
+            max={100}
+            step={1}
+            className="mb-4"
+          />
+          <Button
+            className="w-full bg-purple-950 hover:bg-purple-800 text-lg shadow-xl"
+            onClick={handleDownload}
           >
-            Read our docs
-          </a>
+            Download the cute bouquet
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {/* RIGHT FLOWER PANEL */}
+        <div className="flex md:flex-col gap-10">
+          {flowers.slice(3).map((src, i) => (
+            <div
+              key={i}
+              draggable
+              onDragStart={(e) => handleDragStart(e, src)}
+              className="bg-white/30 backdrop-blur-sm rounded-full border border-purple-950 cursor-grab"
+            >
+              <Image src={src} width={188} height={188} alt={`f${i}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
